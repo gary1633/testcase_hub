@@ -3,12 +3,13 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "node",
-    "types": ["node"],
+    "types": ["node", "multer"],
     "outDir": "./dist",
     "rootDir": "./src",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false
   },
+  "exclude": ["node_modules", "dist", "drizzle.config.ts"],
   "include": ["src/**/*"]
 }
