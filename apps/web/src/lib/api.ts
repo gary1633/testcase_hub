@@ -131,6 +131,11 @@ export const api = {
       body: JSON.stringify({ credential }),
     }),
   me: () => request<UserDto>('/auth/me'),
+  updateMe: (payload: { fullName?: string; email?: string }) =>
+    request<UserDto>('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
   changePassword: (payload: { currentPassword: string; newPassword: string }) =>
     request<UserDto>('/auth/change-password', {
       method: 'POST',

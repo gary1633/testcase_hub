@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -41,6 +42,21 @@ const ChangePasswordSchema = z.object({
 const ForgotPasswordSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
   note: z.string().max(300).optional(),
+});
+
+const UpdateProfileSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(2, 'Họ tên tối thiểu 2 ký tự')
+    .max(255, 'Họ tên tối đa 255 ký tự')
+    .optional(),
+  email: z
+    .string()
+    .trim()
+    .email('Email không hợp lệ')
+    .max(255, 'Email tối đa 255 ký tự')
+    .optional(),
 });
 
 @ApiTags('Auth')
@@ -103,6 +119,18 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() user: AuthUser) {
     return this.authService.getMe(user.id);
+  }
+
+  @Patch('me')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async updateMe(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+    const parsed = UpdateProfileSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstErr = Object.values(parsed.error.flatten().fieldErrors).flat()[0];
+      throw new BadRequestException(firstErr || 'Thông tin cá nhân không hợp lệ');
+    }
+    return this.authService.updateProfile(user.id, parsed.data);
   }
 
   @Post('change-password')

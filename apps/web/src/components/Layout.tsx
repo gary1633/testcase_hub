@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { FolderKanban, KeyRound, LogOut, Search, Sparkles, Users } from 'lucide-react';
+import { FolderKanban, KeyRound, LogOut, Pencil, Search, Sparkles, Users } from 'lucide-react';
 import { canCreateUsers } from '@tcms/shared';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -9,6 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { api } from '../lib/api';
 import { ROLE_STYLE, getInitials } from '../lib/badges';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { EditProfileModal } from './EditProfileModal';
 import { ThemePicker } from './ThemePicker';
 import { LanguageToggle } from './LanguageToggle';
 import { CommandPalette } from './CommandPalette';
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
@@ -154,16 +156,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {ROLE_STYLE[user.role]?.label || user.role}
             </span>
 
-            <div className="flex items-center gap-2.5 pl-2.5 border-l border-hairline">
-              <div className="w-8 h-8 rounded-full bg-brand-600 text-white text-xs font-semibold flex items-center justify-center shrink-0 shadow-xs">
-                {getInitials(user.fullName)}
-              </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-[13px] font-semibold text-ink leading-tight">
-                  {user.fullName}
+            <div className="pl-2.5 border-l border-hairline">
+              <button
+                type="button"
+                onClick={() => setShowEditProfile(true)}
+                title={tx('Chỉnh sửa thông tin cá nhân', 'Edit personal profile')}
+                aria-label={tx('Chỉnh sửa thông tin cá nhân', 'Edit personal profile')}
+                className="flex items-center gap-2.5 px-2 py-1 rounded-xl hover:bg-slate-100/80 transition-colors cursor-pointer group"
+              >
+                <div className="w-8 h-8 rounded-full bg-brand-600 text-white text-xs font-semibold flex items-center justify-center shrink-0 shadow-xs">
+                  {getInitials(user.fullName)}
                 </div>
-                <div className="text-[11px] text-slate-500 leading-tight">{user.email}</div>
-              </div>
+                <div className="hidden sm:block text-left">
+                  <div className="text-[13px] font-semibold text-ink leading-tight flex items-center gap-1.5">
+                    <span>{user.fullName}</span>
+                    <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-brand-600 transition-opacity" />
+                  </div>
+                  <div className="text-[11px] text-slate-500 leading-tight">{user.email}</div>
+                </div>
+              </button>
             </div>
 
             <LanguageToggle />
@@ -193,6 +204,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="flex-1 flex flex-col min-h-0">{children}</main>
+
+      {showEditProfile && (
+        <EditProfileModal
+          onClose={() => setShowEditProfile(false)}
+          onOpenChangePassword={() => setShowChangePassword(true)}
+        />
+      )}
 
       {user?.mustChangePassword ? (
         <ChangePasswordModal forced onClose={() => {}} />

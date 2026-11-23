@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -7,7 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import { DatabaseService } from '../db/database.service';
 import { passwordResetRequests, users } from '../db/schema';
 import { MailService } from '../mail/mail.service';
@@ -215,6 +216,59 @@ export class AuthService {
     }
 
     return this.toUserDto(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    input: { fullName?: string; email?: string },
+  ): Promise<UserDto> {
+    const [user] = await this.dbService.db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Tài khoản không tồn tại hoặc đã bị khóa');
+    }
+
+    const updateData: Partial<typeof users.$inferInsert> = {};
+
+    if (input.fullName !== undefined) {
+      const trimmed = input.fullName.trim();
+      if (trimmed.length < 2) {
+        throw new BadRequestException('Họ tên tối thiểu 2 ký tự');
+      }
+      updateData.fullName = trimmed;
+    }
+
+    if (input.email !== undefined) {
+      const normalizedEmail = input.email.trim().toLowerCase();
+      if (normalizedEmail !== user.email) {
+        const [duplicate] = await this.dbService.db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.email, normalizedEmail), ne(users.id, userId)))
+          .limit(1);
+
+        if (duplicate) {
+          throw new ConflictException('Email này đã được sử dụng bởi tài khoản khác');
+        }
+        updateData.email = normalizedEmail;
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return this.toUserDto(user);
+    }
+
+    const [updated] = await this.dbService.db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+
+    return this.toUserDto(updated);
   }
 
   async changePassword(
