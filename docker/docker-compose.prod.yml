@@ -1,0 +1,85 @@
+name: finx-testcase-hub
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tcms-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tcms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-tcms_db}
+    volumes:
+      - tcms_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tcms} -d ${POSTGRES_DB:-tcms_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tcms_net
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    container_name: tcms-api-prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tcms}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tcms_db}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      UPLOAD_DIR: /app/apps/api/uploads
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-false}
+      # Clean Production Bootstrap: ONLY 1 Super Admin account, zero demo projects/data
+      SEED_MODE: ${SEED_MODE:-superadmin}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@finx.local}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:?SUPERADMIN_PASSWORD is required}
+      SUPERADMIN_NAME: ${SUPERADMIN_NAME:-Super Admin}
+      SUPERADMIN_MUST_CHANGE_PASSWORD: ${SUPERADMIN_MUST_CHANGE_PASSWORD:-false}
+      # Optional: Public URL used in email links (defaults to first CORS_ORIGIN)
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+      # Optional: Google Workspace SSO (leave GOOGLE_CLIENT_ID empty to keep disabled)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_ALLOWED_DOMAINS: ${GOOGLE_ALLOWED_DOMAINS:-}
+      GOOGLE_AUTO_PROVISION: ${GOOGLE_AUTO_PROVISION:-false}
+      GOOGLE_DEFAULT_ROLE: ${GOOGLE_DEFAULT_ROLE:-QA}
+      # Optional: Gmail / SMTP Auto-Email (leave empty to keep disabled)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      - tcms_uploads:/app/apps/api/uploads
+    networks:
+      - tcms_net
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    container_name: tcms-web-prod
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    networks:
+      - tcms_net
+
+volumes:
+  tcms_pg_data:
+  tcms_uploads:
+
+networks:
+  tcms_net:
+    driver: bridge

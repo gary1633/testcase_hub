@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/finx-favicon.png" />
+    <title>FinX TestCase Hub</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('finx_tcms_theme');
+          var isDark =
+            saved === 'dark' ||
+            (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          }
+          var color = localStorage.getItem('finx_tcms_color_theme');
+          if (
+            color &&
+            [
+              'plum',
+              'ocean',
+              'emerald',
+              'indigo',
+              'rose',
+              'amber',
+              'aurora',
+              'sunset',
+              'northern',
+              'galaxy',
+            ].indexOf(color) !== -1
+          ) {
+            document.documentElement.setAttribute('data-color-theme', color);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+apps/api/.env
+docker/.env.prod
+*.log
+apps/api/data/
+apps/api/uploads/
+backups/
+.DS_Store
+Thumbs.db
